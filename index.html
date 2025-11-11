@@ -1,253 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Soneium Router Probe + Swap Tester</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Swap • Soneium Testnet DEX</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <style>
-body{font-family:system-ui,Arial;padding:16px;background:#0b1220;color:#e6edf3}
-.card{background:#121a2a;border:1px solid #22304a;border-radius:12px;padding:16px;max-width:860px;margin:0 auto}
-h1{margin:0 0 12px;color:#7c5cff}
-input,select,button,textarea{width:100%;padding:10px;margin-top:8px;border-radius:10px;border:1px solid #22304a;background:#0f1625;color:#fff}
-button{cursor:pointer;font-weight:700}
-.btn{background:linear-gradient(90deg,#22c55e,#16a34a);border:0}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-pre{white-space:pre-wrap;background:#0f1625;border:1px solid #22304a;border-radius:10px;padding:10px;margin-top:12px;max-height:340px;overflow:auto;font-size:13px}
-small{color:#9fb0d9}
-.bad{color:#fca5a5}
-.ok{color:#86efac}
+:root {
+  --bg: #f9fafb;
+  --card: #ffffff;
+  --primary: #22c55e;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+}
+body {
+  font-family: 'Poppins', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+  width: min(400px, 90vw);
+  box-shadow: 0 10px 30px rgba(0,0,0,.05);
+}
+h1 {
+  text-align: center;
+  color: var(--primary);
+  margin-bottom: 20px;
+}
+.token-select {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f3f4f6;
+  border-radius: 12px;
+  padding: 10px;
+}
+select, input {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  font-weight: 500;
+  outline: none;
+  color: var(--text);
+  width: 100%;
+}
+.amount-box {
+  margin-top: 8px;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 12px;
+}
+button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(90deg,#22c55e,#16a34a);
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+  margin-top: 16px;
+  cursor: pointer;
+  transition: opacity .2s;
+}
+button:hover { opacity: .9; }
+small { color: var(--muted); display: block; text-align: center; margin-top: 10px; }
+pre {
+  background: #f3f4f6;
+  color: #1f2937;
+  font-size: 13px;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 12px;
+  max-height: 180px;
+  overflow: auto;
+}
 </style>
 </head>
 <body>
 <div class="card">
-  <h1>🔎 Soneium Router Probe + Swap Tester</h1>
-  <button id="btnConnect" class="btn">🔌 Connect Wallet</button>
-  <div class="row">
-    <div>
-      <label>Network</label>
-      <input id="net" readonly placeholder="Soneium Minato (testnet)"/>
-    </div>
-    <div>
-      <label>Account</label>
-      <input id="acct" readonly/>
-    </div>
+  <h1>Swap</h1>
+  <div class="token-select">
+    <select id="tokenFrom">
+      <option value="0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391">USDC.e</option>
+      <option value="0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655">ASTR</option>
+      <option value="0x4200000000000000000000000000000000000006">WETH</option>
+    </select>
+    <span>→</span>
+    <select id="tokenTo">
+      <option value="0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655">ASTR</option>
+      <option value="0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391">USDC.e</option>
+      <option value="0x4200000000000000000000000000000000000006">WETH</option>
+    </select>
   </div>
 
-  <label>Addresses to probe (router/factory/pair) • satu per baris</label>
-  <textarea id="addrList" rows="6">0x5E0b9C785e9599D6800601574E578E6Caa663d91
-0x1A70b67B52049558B56Aa1854d3C9C11f0aD8E62
-0xC7376dE2897b3F0b67c45Ae240444a2D435cA3E0</textarea>
-  <button id="btnProbe" class="btn">🧪 Probe All</button>
+  <div class="amount-box">
+    <input id="amount" type="number" placeholder="0.0" />
+    <small id="balance">Saldo: -</small>
+  </div>
 
-  <h3>🧰 Swap Tester (via Router lama)</h3>
-  <div class="row">
-    <div>
-      <label>Router</label>
-      <input id="router" placeholder="0x... (UniswapV2Router02)"/>
-    </div>
-    <div>
-      <label>Factory (opsional)</label>
-      <input id="factory" placeholder="0x... (UniswapV2Factory)"/>
-    </div>
-  </div>
-  <div class="row">
-    <div>
-      <label>Token In</label>
-      <input id="tokenIn" placeholder="0x..."/>
-    </div>
-    <div>
-      <label>Token Out</label>
-      <input id="tokenOut" placeholder="0x..."/>
-    </div>
-  </div>
-  <div class="row">
-    <div>
-      <label>Amount In (human)</label>
-      <input id="amtIn" type="number" placeholder="ex: 1.0"/>
-    </div>
-    <div>
-      <label>Decimals In</label>
-      <input id="decIn" type="number" placeholder="6/18" value="18"/>
-    </div>
-  </div>
-  <div class="row">
-    <div>
-      <label>Slippage Min Out (opsional, kosongkan = 0)</label>
-      <input id="minOut" type="number" placeholder="ex: 0 (no min)"/>
-    </div>
-    <div>
-      <label>Decimals Out</label>
-      <input id="decOut" type="number" placeholder="6/18" value="18"/>
-    </div>
-  </div>
-  <button id="btnSwap" class="btn">🚀 Approve + Swap via Router</button>
-
+  <button id="connect">🔌 Connect Wallet</button>
+  <button id="swap" disabled>🚀 Swap Now</button>
   <pre id="log">log siap...</pre>
-  <small>Tips: Kalau UI DEX lama mati tapi kontraknya hidup, swap tetap bisa via router ini. Untuk path multi-hop, ubah script ke array path [tokenIn, mid, tokenOut].</small>
+  <small>by thdx</small>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const log = m => { const el=$("log"); el.textContent += (el.textContent?"\n":"") + m; el.scrollTop = el.scrollHeight; console.log(m); };
+const log = m => { $("log").textContent += "\\n" + m; $("log").scrollTop = $("log").scrollHeight; console.log(m); };
 
-let provider, signer, me;
-
-const SONEIUM = {
-  name: "Soneium Minato",
-  id: 1946,          // ganti ke chainId testnet Minato jika berbeda
-  hex: "0x79A",      // 1946 → 0x79A
-  rpc: "https://rpc.minato.soneium.org", // fallback RPC; ganti jika kamu punya yang lebih stabil
-  explorer: "https://soneium-minato.blockscout.com"
+const TOKENS = {
+  "0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391": {symbol:"USDC.e", decimals:6},
+  "0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655": {symbol:"ASTR", decimals:18},
+  "0x4200000000000000000000000000000000000006": {symbol:"WETH", decimals:18}
 };
 
-// Minimal ABIs (UniswapV2-like)
+const ROUTER_ADDRESS = "0x5E0b9C785e9599D6800601574E578E6Caa663d91"; // contoh router aktif
 const ROUTER_ABI = [
-  "function factory() view returns (address)",
-  "function WETH() view returns (address)",
   "function getAmountsOut(uint amountIn, address[] calldata path) view returns (uint[] memory amounts)",
   "function swapExactTokensForTokens(uint amountIn,uint amountOutMin,address[] calldata path,address to,uint deadline) returns (uint[] memory amounts)"
 ];
-const FACTORY_ABI = [
-  "function getPair(address,address) view returns (address)"
-];
-const PAIR_ABI = [
-  "function token0() view returns (address)",
-  "function token1() view returns (address)",
-  "function getReserves() view returns (uint112,uint112,uint32)"
-];
 const ERC20_ABI = [
+  "function balanceOf(address) view returns (uint256)",
   "function decimals() view returns (uint8)",
   "function symbol() view returns (string)",
-  "function name() view returns (string)",
-  "function balanceOf(address) view returns (uint256)",
-  "function allowance(address,address) view returns (uint256)",
   "function approve(address,uint256) returns (bool)"
 ];
 
-// ——— connect ———
-async function ensureSoneium(){
-  const net = await provider.getNetwork();
-  if (Number(net.chainId) === SONEIUM.id) return;
-  try{
-    await provider.provider.request({ method:"wallet_switchEthereumChain", params:[{ chainId: SONEIUM.hex }] });
-  }catch(e){
-    if(e.code===4902){
-      await provider.provider.request({
-        method:"wallet_addEthereumChain",
-        params:[{ chainId:SONEIUM.hex, chainName:SONEIUM.name, rpcUrls:[SONEIUM.rpc], blockExplorerUrls:[SONEIUM.explorer], nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18} }]
-      });
-    } else throw e;
-  }
-}
+let provider, signer, me;
 
-async function connect(){
-  if(!window.ethereum) return alert("Wallet tidak ditemukan");
+async function connect() {
+  if (!window.ethereum) return alert("Install MetaMask dulu.");
   provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-  await provider.send("eth_requestAccounts",[]);
-  signer = provider.getSigner(); me = await signer.getAddress();
-  await ensureSoneium();
+  await provider.send("eth_requestAccounts", []);
+  signer = provider.getSigner();
+  me = await signer.getAddress();
   const net = await provider.getNetwork();
-  $("net").value  = `${SONEIUM.name} (${net.chainId})`;
-  $("acct").value = me;
-  log(`✅ Connected: ${me}\nChain: ${net.chainId}`);
-}
-$("btnConnect").onclick = connect;
-
-// ——— probe ———
-async function isContract(addr){
-  const code = await provider.getCode(addr);
-  return code && code !== "0x";
+  log(`✅ Connected: ${me}\\nChain: ${net.chainId}`);
+  $("connect").disabled = true;
+  $("swap").disabled = false;
+  updateBalance();
 }
 
-async function tryCall(c, fn, args=[]){
-  try{ return await c[fn](...args); }catch{ return null; }
+async function updateBalance() {
+  const token = $("tokenFrom").value;
+  const erc = new ethers.Contract(token, ERC20_ABI, provider);
+  const bal = await erc.balanceOf(me);
+  const dec = TOKENS[token].decimals;
+  const human = Number(ethers.utils.formatUnits(bal, dec)).toFixed(4);
+  $("balance").textContent = `Saldo: ${human} ${TOKENS[token].symbol}`;
 }
 
-async function probeOne(addr){
-  const a = ethers.utils.getAddress(addr);
-  if(!(await isContract(a))) { log(`❌ ${a} bukan kontrak`); return; }
-  // coba router
-  const r = new ethers.Contract(a, ROUTER_ABI, provider);
-  const r_factory = await tryCall(r,"factory");
-  const r_weth    = await tryCall(r,"WETH");
-  if(r_factory && r_weth){
-    log(`🧭 Router terdeteksi: ${a}\n  • factory=${r_factory}\n  • WETH=${r_weth}`);
-    $("router").value  = $("router").value || a;
-    $("factory").value = $("factory").value || r_factory;
-    return;
-  }
-  // coba factory
-  const f = new ethers.Contract(a, FACTORY_ABI, provider);
-  const f_ok = await tryCall(f,"getPair",[ethers.constants.AddressZero, ethers.constants.AddressZero]);
-  if(f_ok !== null){ // meski 0x0, call sukses tandanya ABI cocok
-    log(`🏭 Factory terdeteksi: ${a}`);
-    if(!$("factory").value) $("factory").value = a;
-    return;
-  }
-  // coba pair
-  const p = new ethers.Contract(a, PAIR_ABI, provider);
-  const t0 = await tryCall(p,"token0");
-  const t1 = await tryCall(p,"token1");
-  const rs = await tryCall(p,"getReserves");
-  if(t0 && t1 && rs){
-    log(`🤝 Pair terdeteksi: ${a}\n  • token0=${t0}\n  • token1=${t1}\n  • reserves=(${rs[0].toString()}, ${rs[1].toString()})`);
-    return;
-  }
-  log(`❓ Tidak teridentifikasi: ${a}`);
-}
+async function swapNow() {
+  try {
+    const tokenIn = $("tokenFrom").value;
+    const tokenOut = $("tokenTo").value;
+    const amount = $("amount").value.trim();
+    if (!amount) return alert("Masukkan jumlah token.");
+    const decIn = TOKENS[tokenIn].decimals;
+    const amt = ethers.utils.parseUnits(amount, decIn);
+    const router = new ethers.Contract(ROUTER_ADDRESS, ROUTER_ABI, signer);
 
-async function probeAll(){
-  try{
-    const lines = $("addrList").value.split(/\s+/).filter(Boolean);
-    for(const line of lines){ await probeOne(line); }
-    log("✅ Probe selesai.");
-  }catch(e){ log("❌ Probe error: "+(e.message||e)); }
-}
-$("btnProbe").onclick = probeAll;
+    const erc = new ethers.Contract(tokenIn, ERC20_ABI, signer);
+    const txA = await erc.approve(ROUTER_ADDRESS, amt);
+    log(`⏳ Approve TX: ${txA.hash}`);
+    await txA.wait();
 
-// ——— swap tester ———
-async function ensureApprove(token, spender, amount){
-  const c = new ethers.Contract(token, ERC20_ABI, signer);
-  const al = await c.allowance(me, spender);
-  if(al.gte(amount)) return;
-  const tx = await c.approve(spender, amount);
-  log(`🧾 Approve: ${tx.hash}`); await tx.wait(); log("✅ Approve done");
-}
-
-$("btnSwap").onclick = async ()=>{
-  try{
-    if(!signer) return alert("Connect wallet dulu");
-    const router  = ethers.utils.getAddress($("router").value.trim());
-    const tokenIn = ethers.utils.getAddress($("tokenIn").value.trim());
-    const tokenOut= ethers.utils.getAddress($("tokenOut").value.trim());
-    const amtInH  = $("amtIn").value.trim();
-    const decIn   = Number($("decIn").value.trim()||"18");
-    const minOutH = $("minOut").value.trim();
-    const decOut  = Number($("decOut").value.trim()||"18");
-    if(!amtInH) return alert("Isi Amount In");
-    const amountIn  = ethers.utils.parseUnits(amtInH, decIn);
-    const amountMin = minOutH ? ethers.utils.parseUnits(minOutH, decOut) : ethers.constants.Zero;
-
-    const r = new ethers.Contract(router, ROUTER_ABI, signer);
     const path = [tokenIn, tokenOut];
-    // quote (optional)
-    try{
-      const out = await r.getAmountsOut(amountIn, path);
-      log(`📐 Quote: ${ethers.utils.formatUnits(out[out.length-1], decOut)} (tokenOut)`);
-    }catch{}
-
-    await ensureApprove(tokenIn, router, amountIn);
     const deadline = Math.floor(Date.now()/1000)+1200;
-    log(`🚀 swapExactTokensForTokens on ${router} ...`);
-    const tx = await r.swapExactTokensForTokens(amountIn, amountMin, path, me, deadline);
-    log(`⏳ TX: ${tx.hash}`);
+    const tx = await router.swapExactTokensForTokens(amt, 0, path, me, deadline);
+    log(`🚀 TX: ${tx.hash}`);
     await tx.wait();
     log("✅ Swap sukses!");
-  }catch(e){
-    log("❌ Swap error: "+(e.reason||e.message||e));
+    updateBalance();
+  } catch(e) {
+    log("❌ Error: " + (e.reason || e.message || e));
   }
-};
+}
+
+$("connect").onclick = connect;
+$("swap").onclick = swapNow;
+$("tokenFrom").onchange = updateBalance;
 </script>
 </body>
 </html>
