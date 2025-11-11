@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Soneium DEX — Swap (v3.7.4)</title>
+<title>Soneium DEX — Swap (v3.7.5 Single Router)</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <style>
@@ -44,9 +44,7 @@ body{margin:0;font-family:Poppins,system-ui,Arial;background:linear-gradient(180
           <option value="0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391">USDC.e</option>
           <option value="0x4200000000000000000000000000000000000006">WETH</option>
         </select>
-        <div class="input-wrap">
-          <input id="fromAmount" class="inp" placeholder="0.0" inputmode="decimal"/>
-        </div>
+        <div class="input-wrap"><input id="fromAmount" class="inp" placeholder="0.0" inputmode="decimal"/></div>
       </div>
       <div class="meta"><span>Saldo</span><span id="balFrom">-</span></div>
     </div>
@@ -66,7 +64,7 @@ body{margin:0;font-family:Poppins,system-ui,Arial;background:linear-gradient(180
     </div>
 
     <div class="meta" style="margin-top:8px"><span>Estimasi</span><span id="priceInfo">-</span></div>
-    <div class="meta"><span>Router</span><span id="routerName">auto</span></div>
+    <div class="meta"><span>Router</span><span id="routerName">0x5E0b…3d91</span></div>
 
     <button id="btnSwap" class="cta" disabled>Swap</button>
     <div class="footer">by thdx</div>
@@ -74,23 +72,20 @@ body{margin:0;font-family:Poppins,system-ui,Arial;background:linear-gradient(180
 </div>
 
 <script>
-/* ---------- CONFIG ---------- */
+/* ===== CONFIG ===== */
 const RPC="https://rpc.minato.soneium.org";
 const CHAIN_ID=1946, CHAIN_HEX="0x79A";
+const ROUTER="0x5E0b9C785e9599D6800601574E578E6Caa663d91";
 const FACTORY="0x48630D9914A9F87A485ABE0779cAa9E58ff0F604";
-const ROUTERS=[
-  {name:"Router A",addr:"0x5E0b9C785e9599D6800601574E578E6Caa663d91"},
-  {name:"Router B",addr:"0x1A70b67B52049558B56Aa1854d3C9C11f0aD8E62"},
-  {name:"Router C",addr:"0xC7376dE2897b3F0b67c45Ae240444a2D435cA3E0"}
-];
+const WETH="0x4200000000000000000000000000000000000006";
+
 const TOKENS={
  "0x26e6f7c7047252dde3dcbf26aa492e6a264db655":{symbol:"ASTR",decimals:18},
  "0xe9a198d38483ad727abc8b0b1e16b2d338cf0391":{symbol:"USDC.e",decimals:6},
  "0x4200000000000000000000000000000000000006":{symbol:"WETH",decimals:18}
 };
-const WETH="0x4200000000000000000000000000000000000006";
 
-/* ---------- ABIs ---------- */
+/* ===== ABIs ===== */
 const ERC20_ABI=[
  "function balanceOf(address) view returns(uint256)",
  "function allowance(address,address) view returns(uint256)",
@@ -102,69 +97,63 @@ const ROUTER_ABI=[
 ];
 const FACTORY_ABI=["function getPair(address,address) view returns(address)"];
 
-/* ---------- STATE ---------- */
+/* ===== STATE ===== */
 const $=id=>document.getElementById(id);
-let provider,signer,me,best=null;
-let readProvider = new ethers.providers.JsonRpcProvider(RPC);
+let provider,signer,me,readProvider = new ethers.providers.JsonRpcProvider(RPC);
+let best=null;
 
-/* ---------- HELPERS ---------- */
-const toKey=a=>a.toLowerCase();
-const tInfo=a=>TOKENS[toKey(a)];
+/* ===== HELPERS ===== */
+const tKey=a=>a.toLowerCase();
+const tInfo=a=>TOKENS[tKey(a)];
 const fmt=(bn,dec)=>{try{return Number(ethers.utils.formatUnits(bn,dec)).toLocaleString(undefined,{maximumFractionDigits:6})}catch{return "-"}};
 const parse=(v,dec)=>ethers.utils.parseUnits(String(v).replace(",","."),dec);
+function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
 
-/* ---------- EVENTS ---------- */
+/* ===== UI BIND ===== */
 $("btnConnect").onclick=connect;
 $("fromToken").onchange=onTokenChange;
 $("toToken").onchange=onTokenChange;
 $("fromAmount").oninput=debounce(quote,250);
 $("btnSwap").onclick=swap;
 
-function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
-
-/* ---------- CONNECT ---------- */
+/* ===== CONNECT ===== */
 async function connect(){
   try{
     if(!window.ethereum) throw new Error("Install MetaMask dulu");
     provider=new ethers.providers.Web3Provider(window.ethereum,"any");
     await provider.send("eth_requestAccounts",[]);
     signer=provider.getSigner(); me=await signer.getAddress();
-    $("btnConnect").textContent = me.slice(0,6)+"…"+me.slice(-4);
-
+    $("btnConnect").textContent=me.slice(0,6)+"…"+me.slice(-4);
     const net=await provider.getNetwork();
     if(Number(net.chainId)!==CHAIN_ID){
-      try{
-        await provider.provider.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_HEX}]});
-      }catch(e){
+      try{ await provider.provider.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_HEX}]}); }
+      catch(e){
         if(e.code===4902){
-          await provider.provider.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN_HEX,chainName:"Soneium Minato",rpcUrls:[RPC]}]});
-        } else throw e;
+          await provider.provider.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN_HEX,chainName:"Soneium Minato",rpcUrls:[RPC],nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18}}]});
+        } else { throw e; }
       }
     }
-
-    // pakai provider baca tulis + readProvider untuk read-only cepat
-    readProvider = provider;
-
-    await refreshBalances();
+    readProvider = provider; // gunakan provider wallet untuk read juga
     $("btnSwap").disabled=false;
+    await refreshBalances();
     await quote();
   }catch(e){ alert("Connect error: "+(e.message||e)); }
 }
 
-/* ---------- BALANCES ---------- */
+/* ===== BALANCE ===== */
 async function refreshBalances(){
   try{
     if(!me) return;
-    const a=$("fromToken").value, b=$("toToken").value;
-    const cA=new ethers.Contract(a,ERC20_ABI,readProvider);
-    const cB=new ethers.Contract(b,ERC20_ABI,readProvider);
-    const [ba,bb]=await Promise.all([cA.balanceOf(me),cB.balanceOf(me)]);
-    $("balFrom").textContent=fmt(ba,tInfo(a).decimals)+" "+tInfo(a).symbol;
-    $("balTo").textContent  =fmt(bb,tInfo(b).decimals)+" "+tInfo(b).symbol;
+    const A=$("fromToken").value, B=$("toToken").value;
+    const cA=new ethers.Contract(A,ERC20_ABI,readProvider);
+    const cB=new ethers.Contract(B,ERC20_ABI,readProvider);
+    const [ba,bb]=await Promise.all([cA.balanceOf(me), cB.balanceOf(me)]);
+    $("balFrom").textContent=fmt(ba,tInfo(A).decimals)+" "+tInfo(A).symbol;
+    $("balTo").textContent  =fmt(bb,tInfo(B).decimals)+" "+tInfo(B).symbol;
   }catch{ $("balFrom").textContent="-"; $("balTo").textContent="-"; }
 }
 
-/* ---------- FACTORY PAIR CHECK (dua arah) ---------- */
+/* ===== FACTORY UTIL (cek pair dua arah) ===== */
 async function getPairEither(x,y){
   const f=new ethers.Contract(FACTORY,FACTORY_ABI,readProvider);
   try{
@@ -176,72 +165,65 @@ async function getPairEither(x,y){
   }catch{ return ethers.constants.AddressZero; }
 }
 
-/* ---------- QUOTE (auto path) ---------- */
+/* ===== QUOTE (direct / via WETH) ===== */
 async function quote(){
   try{
     const val=$("fromAmount").value.trim();
     const A=$("fromToken").value, B=$("toToken").value;
     if(!val||Number(val)<=0||A===B){
-      $("toAmount").textContent="≈ -"; $("priceInfo").textContent="-"; $("routerName").textContent="auto"; best=null; return;
+      $("toAmount").textContent="≈ -"; $("priceInfo").textContent="-"; best=null; return;
     }
     const amountIn=parse(val,tInfo(A).decimals);
-
-    // kandidat path: direct dan via WETH
-    const candidates=[[A,B]];
+    const paths=[[A,B]];
     if(A.toLowerCase()!==WETH.toLowerCase() && B.toLowerCase()!==WETH.toLowerCase()){
-      candidates.push([A,WETH,B]);
+      paths.push([A,WETH,B]);
     }
 
+    const rc=new ethers.Contract(ROUTER,ROUTER_ABI,readProvider);
     let bestLocal=null;
 
-    for(const r of ROUTERS){
-      const rc=new ethers.Contract(r.addr,ROUTER_ABI,readProvider);
-      for(const path of candidates){
-        // validasi pair untuk setiap hop (dua arah)
-        let ok=true;
-        for(let i=0;i<path.length-1;i++){
-          const pair=await getPairEither(path[i],path[i+1]);
-          if(pair===ethers.constants.AddressZero){ ok=false; break; }
-        }
-        if(!ok) continue;
-
-        try{
-          const amts=await rc.getAmountsOut(amountIn,path);
-          const out=amts[amts.length-1];
-          if(!bestLocal||out.gt(bestLocal.out)) bestLocal={r,path,out};
-        }catch{/* router ini tidak kenal path meski factory ada */}
+    for(const p of paths){
+      // validasi setiap hop ada pair di factory
+      let ok=true;
+      for(let i=0;i<p.length-1;i++){
+        const pair=await getPairEither(p[i],p[i+1]);
+        if(pair===ethers.constants.AddressZero){ ok=false; break; }
       }
+      if(!ok) continue;
+
+      try{
+        const amts=await rc.getAmountsOut(amountIn,p);
+        const out=amts[amts.length-1];
+        if(!bestLocal||out.gt(bestLocal.out)) bestLocal={path:p,out};
+      }catch{/* skip kalau router gak kenal path */}
     }
 
     if(!bestLocal){
       $("toAmount").textContent="≈ -";
       $("priceInfo").textContent="Estimasi gagal (no liquidity)";
-      $("routerName").textContent="auto";
       best=null; return;
     }
 
     best=bestLocal;
-    $("routerName").textContent=best.r.name;
     const dec=tInfo(B).decimals;
     $("toAmount").textContent="≈ "+Number(ethers.utils.formatUnits(best.out,dec)).toFixed(6)+" "+tInfo(B).symbol;
     const per = Number(ethers.utils.formatUnits(best.out,dec))/Number(val);
     $("priceInfo").textContent=`1 ${tInfo(A).symbol} ≈ ${isFinite(per)?per.toFixed(6):"-"} ${tInfo(B).symbol}`;
   }catch(e){
-    $("toAmount").textContent="≈ -"; $("priceInfo").textContent="Estimasi gagal"; $("routerName").textContent="auto"; best=null;
+    $("toAmount").textContent="≈ -"; $("priceInfo").textContent="Estimasi gagal"; best=null;
   }
 }
 
-/* ---------- TOKEN CHANGE ---------- */
+/* ===== TOKEN CHANGE ===== */
 async function onTokenChange(){
   if($("fromToken").value === $("toToken").value){
-    const keys=Object.keys(TOKENS).filter(k=>k!==toKey($("fromToken").value));
+    const keys=Object.keys(TOKENS).filter(k=>k!==tKey($("fromToken").value));
     $("toToken").value = keys[0];
   }
-  await refreshBalances();
-  await quote();
+  await refreshBalances(); await quote();
 }
 
-/* ---------- APPROVE ---------- */
+/* ===== APPROVE ===== */
 async function ensureApprove(token,spender,amt){
   const c=new ethers.Contract(token,["function allowance(address,address) view returns(uint256)","function approve(address,uint256) returns(bool)"],signer);
   const al=await c.allowance(me,spender);
@@ -250,21 +232,20 @@ async function ensureApprove(token,spender,amt){
   await tx.wait();
 }
 
-/* ---------- SWAP ---------- */
+/* ===== SWAP ===== */
 async function swap(){
   try{
     if(!best) return alert("Tidak ada route yang valid (cek liquidity)");
     const A=$("fromToken").value, B=$("toToken").value, v=$("fromAmount").value.trim();
     const amt=parse(v,tInfo(A).decimals);
-    const rc=new ethers.Contract(best.r.addr,ROUTER_ABI,signer);
 
-    // re-quote untuk outMin
+    const rc=new ethers.Contract(ROUTER,ROUTER_ABI,signer);
     const amts=await rc.getAmountsOut(amt,best.path);
     const out=amts[amts.length-1];
-    const outMin=out.mul(95).div(100); // 5% slippage
+    const outMin=out.mul(95).div(100);
 
     $("btnSwap").disabled=true; $("btnSwap").textContent="Processing…";
-    await ensureApprove(A,best.r.addr,amt);
+    await ensureApprove(A,ROUTER,amt);
 
     const deadline=Math.floor(Date.now()/1000)+900;
     const tx=await rc.swapExactTokensForTokens(amt,outMin,best.path,me,deadline,{gasLimit:900000});
@@ -279,11 +260,10 @@ async function swap(){
   }
 }
 
-/* ---------- DEFAULTS ---------- */
+/* ===== DEFAULTS ===== */
 (function init(){
-  // default: ASTR → USDC.e
-  $("fromToken").value="0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655";
-  $("toToken").value  ="0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391";
+  $("fromToken").value="0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655"; // ASTR
+  $("toToken").value  ="0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391"; // USDC.e
 })();
 </script>
 </body>
