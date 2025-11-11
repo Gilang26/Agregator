@@ -3,42 +3,28 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Soneium DEX — Swap</title>
+<title>Soneium DEX — Swap (v3.7.3 Factory Fix)</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <style>
-:root{
-  --g1:#22c55e; --g2:#16a34a; --bg1:#f6fff7; --bg2:#e9fbee;
-  --card:#ffffff; --line:#e6f7ec; --text:#0e2b22; --mut:#6b7f77;
-}
-*{box-sizing:border-box} html,body{height:100%}
-body{margin:0;font-family:Poppins,system-ui,Arial;background:linear-gradient(180deg,var(--bg1),var(--bg2));
-  color:var(--text);display:flex;align-items:center;justify-content:center}
-.wrap{width:min(420px,94vw)}
+:root{--g1:#22c55e;--g2:#16a34a;--bg1:#f6fff7;--bg2:#e9fbee;--card:#fff;--line:#e6f7ec;--text:#0e2b22;--mut:#6b7f77}
+*{box-sizing:border-box}body{margin:0;font-family:Poppins,system-ui,Arial;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:var(--text);display:flex;align-items:center;justify-content:center;min-height:100vh}
+.wrap{width:min(430px,94vw)}
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .brand{display:flex;gap:10px;align-items:center}
 .badge{width:28px;height:28px;border-radius:8px;background:conic-gradient(from 180deg,var(--g1),var(--g2))}
-.title{font-weight:700}
-.btn{border:0;border-radius:12px;padding:10px 14px;font-weight:700;color:#fff;
-  background:linear-gradient(90deg,var(--g1),var(--g2));cursor:pointer}
-.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;
-  box-shadow:0 16px 36px rgba(16,185,129,.14)}
+.btn{border:0;border-radius:12px;padding:10px 14px;font-weight:700;color:#fff;background:linear-gradient(90deg,var(--g1),var(--g2));cursor:pointer}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 16px 36px rgba(16,185,129,.14)}
 .box{background:#f8fff9;border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px}
 .row{display:flex;gap:10px;align-items:center}
 .sel{flex:0 0 150px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;font-weight:700}
-.input-wrap{flex:1;display:flex;align-items:center;justify-content:flex-end;background:transparent;
-  border:0;border-radius:12px;padding:0 2px}
+.input-wrap{flex:1;display:flex;align-items:center;justify-content:flex-end;padding:0 4px}
 .inp{width:100%;max-width:180px;text-align:right;font-size:22px;font-weight:700;border:0;background:transparent;outline:none}
 .meta{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-top:6px}
 .center{display:grid;place-items:center;color:var(--mut);margin:8px 0;font-weight:700}
-.cta{width:100%;margin-top:12px;padding:14px;border:0;border-radius:12px;color:#fff;font-weight:800;
-  background:linear-gradient(90deg,var(--g1),var(--g2));cursor:pointer}
+.cta{width:100%;margin-top:12px;padding:14px;border:0;border-radius:12px;color:#fff;font-weight:800;background:linear-gradient(90deg,var(--g1),var(--g2));cursor:pointer}
 .cta:disabled{opacity:.6;cursor:not-allowed}
-.small{font-size:12px;color:var(--mut)}
-.footer{margin-top:10px;text-align:center;font-size:12px;color:var(--mut)}
-.note{font-size:12px;color:var(--mut);text-align:center;margin-top:6px}
-.bad{color:#ef4444}
-.ok{color:#059669}
+.footer{text-align:center;font-size:12px;color:var(--mut);margin-top:10px}
 </style>
 </head>
 <body>
@@ -47,9 +33,7 @@ body{margin:0;font-family:Poppins,system-ui,Arial;background:linear-gradient(180
     <div class="brand"><div class="badge"></div><div class="title">Soneium DEX</div></div>
     <button id="btnConnect" class="btn">Connect</button>
   </div>
-
   <div class="card">
-    <!-- FROM -->
     <div class="box">
       <div class="row">
         <select id="fromToken" class="sel">
@@ -57,16 +41,11 @@ body{margin:0;font-family:Poppins,system-ui,Arial;background:linear-gradient(180
           <option value="0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391">USDC.e</option>
           <option value="0x4200000000000000000000000000000000000006">WETH</option>
         </select>
-        <div class="input-wrap">
-          <input id="fromAmount" class="inp" placeholder="0.0" inputmode="decimal"/>
-        </div>
+        <div class="input-wrap"><input id="fromAmount" class="inp" placeholder="0.0" inputmode="decimal"/></div>
       </div>
       <div class="meta"><span>Saldo</span><span id="balFrom">-</span></div>
     </div>
-
     <div class="center">⇅</div>
-
-    <!-- TO -->
     <div class="box">
       <div class="row">
         <select id="toToken" class="sel">
@@ -74,227 +53,111 @@ body{margin:0;font-family:Poppins,system-ui,Arial;background:linear-gradient(180
           <option value="0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655">ASTR</option>
           <option value="0x4200000000000000000000000000000000000006">WETH</option>
         </select>
-        <div class="input-wrap">
-          <div class="inp" id="toAmount">≈ -</div>
-        </div>
+        <div class="input-wrap"><div class="inp" id="toAmount">≈ -</div></div>
       </div>
       <div class="meta"><span>Saldo</span><span id="balTo">-</span></div>
     </div>
-
-    <div class="meta" style="margin-top:8px">
-      <span class="small">Estimasi</span>
-      <span id="priceInfo" class="small">-</span>
-    </div>
-    <div class="note">Router: <span id="routerName">auto</span></div>
-
+    <div class="meta" style="margin-top:8px"><span>Estimasi</span><span id="priceInfo">-</span></div>
+    <div class="meta"><span>Router:</span><span id="routerName">auto</span></div>
     <button id="btnSwap" class="cta" disabled>Swap</button>
     <div class="footer">by thdx</div>
   </div>
 </div>
 
 <script>
-/* ===== CONFIG ===== */
-const ROUTERS = [
-  { name:"Router A", addr:"0x5E0b9C785e9599D6800601574E578E6Caa663d91" },
-  { name:"Router B", addr:"0x1A70b67B52049558B56Aa1854d3C9C11f0aD8E62" },
-  { name:"Router C", addr:"0xC7376dE2897b3F0b67c45Ae240444a2D435cA3E0" }
+const RPC="https://rpc.minato.soneium.org";
+const CHAIN_ID=1946,CHAIN_HEX="0x79A";
+const FACTORY="0x48630D9914A9F87A485ABE0779cAa9E58ff0F604";
+const ROUTERS=[
+  {name:"Router A",addr:"0x5E0b9C785e9599D6800601574E578E6Caa663d91"},
+  {name:"Router B",addr:"0x1A70b67B52049558B56Aa1854d3C9C11f0aD8E62"},
+  {name:"Router C",addr:"0xC7376dE2897b3F0b67c45Ae240444a2D435cA3E0"}
 ];
-
-const TOKENS = {
-  "0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655": { symbol:"ASTR",  decimals:18 },
-  "0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391": { symbol:"USDC.e",decimals:6  },
-  "0x4200000000000000000000000000000000000006": { symbol:"WETH",  decimals:18 }
+const TOKENS={
+ "0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655":{symbol:"ASTR",decimals:18},
+ "0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391":{symbol:"USDC.e",decimals:6},
+ "0x4200000000000000000000000000000000000006":{symbol:"WETH",decimals:18}
 };
+const WETH="0x4200000000000000000000000000000000000006";
 
-const CHAIN_ID = 1946, CHAIN_HEX = "0x79A";
-const RPC = "https://rpc.minato.soneium.org";
-const EXPLORER = "https://soneium-minato.blockscout.com";
-
-/* ===== ABIs ===== */
-const ROUTER_ABI = [
-  "function getAmountsOut(uint amountIn, address[] calldata path) view returns (uint[] memory amounts)",
-  "function swapExactTokensForTokens(uint amountIn,uint amountOutMin,address[] calldata path,address to,uint deadline)"
+const ERC20_ABI=["function balanceOf(address) view returns(uint256)","function allowance(address,address) view returns(uint256)","function approve(address,uint256)"];
+const ROUTER_ABI=[
+ "function getAmountsOut(uint amountIn,address[] calldata path) view returns(uint[] memory amounts)",
+ "function swapExactTokensForTokens(uint amountIn,uint amountOutMin,address[] calldata path,address to,uint deadline)"
 ];
-const ERC20_ABI = [
-  "function balanceOf(address) view returns (uint256)",
-  "function allowance(address,address) view returns (uint256)",
-  "function approve(address,uint256) returns (bool)",
-  "function decimals() view returns (uint8)",
-  "function symbol() view returns (string)"
-];
+const FACTORY_ABI=["function getPair(address,address) view returns(address)"];
+const $=id=>document.getElementById(id);
+let provider,signer,me,best=null;
 
-/* ===== STATE ===== */
-const $ = id => document.getElementById(id);
-let provider, signer, me;
-let routerContracts = []; // [{name,addr,contract}]
-let bestRoute = null;     // {name,addr,amountOut}
+$("btnConnect").onclick=connect;
+$("fromToken").onchange=quote;
+$("toToken").onchange=quote;
+$("fromAmount").oninput=()=>setTimeout(quote,300);
+$("btnSwap").onclick=swap;
 
-/* ===== HELPERS ===== */
-const short = a => a ? a.slice(0,6)+"…"+a.slice(-4) : "";
-const fmt = (bn,dec)=>{ try{ return Number(ethers.utils.formatUnits(bn,dec)).toLocaleString(undefined,{maximumFractionDigits:6}); }catch{ return "-"; } };
-const parseAmt = (v,dec)=> ethers.utils.parseUnits(String(v).replace(",", "."), dec);
-
-/* ===== BIND UI ===== */
-$("btnConnect").onclick = connect;
-$("fromToken").onchange = onTokenChange;
-$("toToken").onchange   = onTokenChange;
-$("fromAmount").oninput = debounce(quoteBest, 250);
-$("btnSwap").onclick    = doSwap;
-
-function debounce(fn,ms){let t;return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);}}
-
-/* ===== CONNECT ===== */
 async function connect(){
-  try{
-    if(!window.ethereum) throw new Error("Install MetaMask / injected wallet");
-    provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-    await provider.send("eth_requestAccounts",[]);
-    signer = provider.getSigner(); me = await signer.getAddress();
-    $("btnConnect").textContent = short(me);
+ try{
+  provider=new ethers.providers.Web3Provider(window.ethereum,"any");
+  await provider.send("eth_requestAccounts",[]);
+  signer=provider.getSigner(); me=await signer.getAddress();
+  $("btnConnect").textContent=me.slice(0,6)+"…"+me.slice(-4);
+  const net=await provider.getNetwork();
+  if(net.chainId!==CHAIN_ID){
+    try{await provider.provider.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_HEX}]})}
+    catch{await provider.provider.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN_HEX,chainName:"Soneium Minato",rpcUrls:[RPC]}]})}
+  }
+  $("btnSwap").disabled=false;
+  quote();
+ }catch(e){alert(e.message)}
+}
 
-    const net = await provider.getNetwork();
-    if(Number(net.chainId)!==CHAIN_ID){
+async function getPair(a,b){
+ const f=new ethers.Contract(FACTORY,FACTORY_ABI,provider||new ethers.providers.JsonRpcProvider(RPC));
+ try{return await f.getPair(a,b)}catch{return ethers.constants.AddressZero}
+}
+
+async function quote(){
+ try{
+  const a=$("fromToken").value,b=$("toToken").value,v=$("fromAmount").value;
+  if(!v||Number(v)<=0){$("toAmount").textContent="≈-";$("priceInfo").textContent="-";return}
+  const amt=ethers.utils.parseUnits(v,TOKENS[a].decimals);
+  const paths=[[a,b]]; if(a!==WETH&&b!==WETH)paths.push([a,WETH,b]);
+  let bestLocal=null;
+  for(const r of ROUTERS){
+    const c=new ethers.Contract(r.addr,ROUTER_ABI,provider||new ethers.providers.JsonRpcProvider(RPC));
+    for(const p of paths){
+      const ok1=await getPair(p[0],p[1]);
+      if(p.length===3){const ok2=await getPair(p[1],p[2]);if(ok1===ethers.constants.AddressZero||ok2===ethers.constants.AddressZero)continue}
+      if(ok1===ethers.constants.AddressZero)continue;
       try{
-        await provider.provider.request({ method:"wallet_switchEthereumChain", params:[{chainId:CHAIN_HEX}] });
-      }catch(e){
-        if(e.code===4902){
-          await provider.provider.request({
-            method:"wallet_addEthereumChain",
-            params:[{ chainId:CHAIN_HEX, chainName:"Soneium Minato", rpcUrls:[RPC],
-              blockExplorerUrls:[EXPLORER], nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18} }]
-          });
-        }else{ throw e; }
-      }
+        const out=(await c.getAmountsOut(amt,p)).slice(-1)[0];
+        if(!bestLocal||out.gt(bestLocal.out))bestLocal={r,p,out}
+      }catch{}
     }
-
-    // init router contracts (read + write)
-    routerContracts = ROUTERS.map(r => ({...r, contract: new ethers.Contract(r.addr, ROUTER_ABI, signer)}));
-
-    // enable actions
-    $("btnSwap").disabled = false;
-
-    await refreshBalances();
-    await quoteBest();
-  }catch(e){ alert("Connect error: "+(e.message||e)); }
-}
-
-/* ===== BALANCES ===== */
-async function refreshBalances(){
-  try{
-    const tF = $("fromToken").value, tT = $("toToken").value;
-    const cF = new ethers.Contract(tF, ERC20_ABI, provider||new ethers.providers.JsonRpcProvider(RPC));
-    const cT = new ethers.Contract(tT, ERC20_ABI, provider||new ethers.providers.JsonRpcProvider(RPC));
-    const [bF,bT] = await Promise.all([cF.balanceOf(me), cT.balanceOf(me)]);
-    $("balFrom").textContent = fmt(bF, TOKENS[tF].decimals)+" "+TOKENS[tF].symbol;
-    $("balTo").textContent   = fmt(bT, TOKENS[tT].decimals)+" "+TOKENS[tT].symbol;
-  }catch{ $("balFrom").textContent="-"; $("balTo").textContent="-"; }
-}
-
-/* ===== QUOTE (MULTI-ROUTER) ===== */
-async function quoteBest(){
-  try{
-    const val = $("fromAmount").value.trim();
-    const tF = $("fromToken").value, tT = $("toToken").value;
-    if(!val || Number(val)<=0 || tF===tT){
-      $("toAmount").textContent = "≈ -"; $("priceInfo").textContent="-"; $("routerName").textContent="auto"; bestRoute=null; return;
-    }
-    const amountIn = parseAmt(val, TOKENS[tF].decimals);
-    const path = [tF, tT];
-
-    let best = null;
-    for(const r of routerContracts){
-      try{
-        const amounts = await r.contract.getAmountsOut(amountIn, path);
-        const out = amounts[amounts.length-1];
-        if(!best || out.gt(best.amountOut)) best = { name:r.name, addr:r.addr, amountOut: out };
-      }catch{ /* ignore router yang ga ada LP */ }
-    }
-
-    if(!best){
-      $("toAmount").textContent = "≈ -";
-      $("priceInfo").textContent = "Estimasi gagal (no liquidity / path not found)";
-      $("routerName").textContent = "auto";
-      bestRoute=null;
-      return;
-    }
-
-    bestRoute = best;
-    $("routerName").textContent = best.name;
-    $("toAmount").textContent = "≈ " + fmt(best.amountOut, TOKENS[tT].decimals) + " " + TOKENS[tT].symbol;
-
-    const per = Number(ethers.utils.formatUnits(best.amountOut, TOKENS[tT].decimals)) / Number(val);
-    $("priceInfo").textContent = `1 ${TOKENS[tF].symbol} ≈ ${isFinite(per)?per.toFixed(6):"-"} ${TOKENS[tT].symbol}`;
-  }catch(e){
-    $("toAmount").textContent = "≈ -";
-    $("priceInfo").textContent = "Estimasi gagal";
-    $("routerName").textContent = "auto";
-    bestRoute=null;
   }
+  if(!bestLocal){$("toAmount").textContent="≈-";$("priceInfo").textContent="Estimasi gagal (no liquidity)";return}
+  best=bestLocal; $("routerName").textContent=best.r.name;
+  const dec=TOKENS[$("toToken").value].decimals;
+  $("toAmount").textContent="≈ "+Number(ethers.utils.formatUnits(best.out,dec)).toFixed(6);
+  $("priceInfo").textContent=`1 ${TOKENS[a].symbol} ≈ ${(Number(ethers.utils.formatUnits(best.out,dec))/Number(v)).toFixed(6)} ${TOKENS[b].symbol}`;
+ }catch{ $("toAmount").textContent="≈-"; $("priceInfo").textContent="Estimasi gagal"; }
 }
 
-/* ===== TOKEN CHANGE ===== */
-async function onTokenChange(){
-  // cegah token sama
-  if($("fromToken").value === $("toToken").value){
-    const keys = Object.keys(TOKENS).filter(k=>k!==$("fromToken").value);
-    $("toToken").value = keys[0];
-  }
-  await refreshBalances();
-  await quoteBest();
+async function swap(){
+ try{
+  if(!best)return alert("Belum ada route valid");
+  const a=$("fromToken").value,b=$("toToken").value,v=$("fromAmount").value;
+  const amt=ethers.utils.parseUnits(v,TOKENS[a].decimals);
+  const r=new ethers.Contract(best.r.addr,ROUTER_ABI,signer);
+  const outMin=best.out.mul(95).div(100);
+  const token=new ethers.Contract(a,ERC20_ABI,signer);
+  const al=await token.allowance(me,best.r.addr);
+  if(al.lt(amt)){await(await token.approve(best.r.addr,amt)).wait()}
+  const tx=await r.swapExactTokensForTokens(amt,outMin,best.p,me,Math.floor(Date.now()/1e3)+600,{gasLimit:900000});
+  alert("Tx sent: "+tx.hash);
+  await tx.wait();alert("Swap success!");
+ }catch(e){alert("Swap error: "+(e.reason||e.message))}
 }
-
-/* ===== APPROVE ===== */
-async function ensureApprove(token, spender, amt){
-  const c = new ethers.Contract(token, ERC20_ABI, signer);
-  const al = await c.allowance(me, spender);
-  if(al.gte(amt)) return;
-  const tx = await c.approve(spender, amt);
-  await tx.wait();
-}
-
-/* ===== SWAP (use best router) ===== */
-async function doSwap(){
-  try{
-    if(!signer) return alert("Connect wallet dulu");
-    const tF = $("fromToken").value, tT = $("toToken").value;
-    const val = $("fromAmount").value.trim();
-    if(!val || Number(val)<=0) return alert("Masukkan jumlah valid");
-    if(!bestRoute) return alert("Tidak ada route yang valid (cek liquidity)");
-
-    const amountIn = parseAmt(val, TOKENS[tF].decimals);
-    const path = [tF, tT];
-    const rc = routerContracts.find(r=>r.addr===bestRoute.addr).contract;
-
-    // get fresh quote lalu slippage 5%
-    let out;
-    try{
-      const amts = await rc.getAmountsOut(amountIn, path);
-      out = amts[amts.length-1];
-    }catch{ return alert("Router gagal quote saat swap. Coba ukuran lain atau router lain."); }
-    const outMin = out.mul(95).div(100);
-
-    $("btnSwap").disabled = true; $("btnSwap").textContent = "Processing…";
-    await ensureApprove(tF, bestRoute.addr, amountIn);
-    const deadline = Math.floor(Date.now()/1000)+1200;
-    const tx = await rc.swapExactTokensForTokens(amountIn, outMin, path, me, deadline, { gasLimit: 800000 });
-    alert("Tx sent: "+tx.hash);
-    await tx.wait();
-    alert("Swap confirmed!");
-    await refreshBalances(); await quoteBest();
-  }catch(e){
-    const msg = e.reason || e.data?.message || e.message || String(e);
-    alert("Swap error: " + msg);
-  }finally{
-    $("btnSwap").disabled = false; $("btnSwap").textContent = "Swap";
-  }
-}
-
-/* ===== DEFAULTS ===== */
-(function init(){
-  // default pair: ASTR -> USDC.e
-  $("fromToken").value = "0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655";
-  $("toToken").value   = "0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391";
-})();
 </script>
 </body>
 </html>
