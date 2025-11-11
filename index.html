@@ -1,330 +1,446 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Swap • Soneium Minimal</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Soneium DEX — Swap & Liquidity</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <style>
 :root{
-  --bg:#f7fdf8; --card:#ffffff;
   --g1:#22c55e; --g2:#16a34a;
-  --mut:#6b7280; --text:#052e2b; --border:#e6f7ec;
+  --bg1:#f6fff7; --bg2:#e9fbee;
+  --card:#ffffff; --line:#e6f7ec; --text:#0d2a21; --mut:#6b7f77;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0; font-family:"Poppins",system-ui,Arial; background:linear-gradient(180deg,var(--bg),#eafaf0);
-  display:flex; align-items:center; justify-content:center; color:var(--text);
+  margin:0; font-family:Poppins,system-ui,Arial;
+  background:linear-gradient(180deg,var(--bg1),var(--bg2));
+  color:var(--text); display:flex; align-items:center; justify-content:center;
 }
-.container{
-  width:min(420px,96vw); background:var(--card); border-radius:16px; padding:20px;
-  box-shadow:0 14px 40px rgba(16,185,129,.12); border:1px solid var(--border);
+.wrap{width:min(460px,95vw)}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.brand{display:flex;gap:10px;align-items:center}
+.logo{width:28px;height:28px;border-radius:8px;background:conic-gradient(from 180deg at 50% 50%,var(--g1),var(--g2))}
+.title{font-weight:700}
+.btn{border:0;border-radius:12px;padding:10px 14px;font-weight:700;color:#fff;
+     background:linear-gradient(90deg,var(--g1),var(--g2)); cursor:pointer}
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px;
+  box-shadow:0 16px 36px rgba(16,185,129,.14)
 }
-.header{display:flex; align-items:center; justify-content:space-between; gap:12px}
-.title{font-weight:700; color:var(--g1); font-size:18px}
-.addr{font-size:12px; color:var(--mut)}
-.card-section{margin-top:12px}
-.box{background:#f6fff6; border-radius:12px; padding:12px; border:1px solid var(--border)}
-.row{display:flex; gap:10px; align-items:center}
-.select{flex:1; background:transparent; border:0; font-weight:700; font-size:16px; outline:none}
-.input{width:100%; border:0; background:transparent; font-size:20px; font-weight:700; text-align:right; outline:none}
-.small{font-size:12px; color:var(--mut); margin-top:8px; text-align:center}
-.swap-btn{width:100%; margin-top:14px; padding:14px; border-radius:12px; border:0; color:#fff; font-weight:700;
- background:linear-gradient(90deg,var(--g1),var(--g2)); cursor:pointer}
-.swap-btn:disabled{opacity:.6; cursor:not-allowed}
-.info{font-size:13px; color:var(--mut); margin-top:8px; text-align:center}
-.footer{font-size:12px; color:var(--mut); text-align:center; margin-top:12px}
-.bad{color:#ef4444}
-.ok{color:#059669}
+.tabs{display:flex;gap:8px;margin-bottom:10px}
+.tab{flex:1;text-align:center;padding:10px;border-radius:12px;border:1px solid var(--line);cursor:pointer;font-weight:600;background:#f8fff9}
+.tab.active{background:#fff;border-color:#c9f0d7}
+.box{background:#f8fff9;border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px}
+.row{display:flex;gap:10px;align-items:center}
+.sel{flex:0 0 160px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:10px; font-weight:700}
+.inp{flex:1; text-align:right; font-size:20px; font-weight:700; border:0; background:transparent; outline:none}
+.meta{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-top:6px}
+.center{display:grid;place-items:center;color:var(--mut);margin:8px 0;font-weight:700}
+.cta{width:100%; margin-top:12px; padding:14px; border:0; border-radius:12px; color:#fff; font-weight:800;
+     background:linear-gradient(90deg,var(--g1),var(--g2)); cursor:pointer}
+.cta:disabled{opacity:.6;cursor:not-allowed}
+.small{font-size:12px;color:var(--mut)}
+.footer{margin-top:10px;text-align:center;font-size:12px;color:var(--mut)}
+hr.sep{border:0;border-top:1px solid var(--line);margin:10px 0}
 </style>
 </head>
 <body>
-  <div class="container" role="main">
-    <div class="header">
-      <div>
-        <div class="title">Swap</div>
-        <div class="addr" id="shortAddr">—</div>
-      </div>
-      <button id="btnConnect" class="swap-btn" style="width:auto;padding:8px 12px;background:linear-gradient(90deg,var(--g1),var(--g2));">Connect</button>
+<div class="wrap">
+  <div class="header">
+    <div class="brand">
+      <div class="logo"></div>
+      <div class="title">Soneium DEX</div>
+    </div>
+    <button id="btnConnect" class="btn">Connect</button>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <div id="tabSwap" class="tab active">Swap</div>
+      <div id="tabAdd"  class="tab">Add Liquidity</div>
+      <div id="tabRem"  class="tab">Remove Liquidity</div>
     </div>
 
-    <div class="card-section">
-      <!-- From -->
+    <!-- SWAP -->
+    <div id="panelSwap">
       <div class="box">
         <div class="row">
-          <select id="fromToken" class="select">
+          <select id="swapFromToken" class="sel">
             <option value="0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655">ASTR</option>
             <option value="0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391">USDC.e</option>
             <option value="0x4200000000000000000000000000000000000006">WETH</option>
           </select>
-          <input id="fromAmount" class="input" placeholder="0.0" inputmode="decimal" />
+          <input id="swapFromAmt" class="inp" placeholder="0.0" inputmode="decimal"/>
         </div>
-        <div class="small" id="balFrom">Saldo: -</div>
+        <div class="meta"><span>Saldo</span><span id="swapBalFrom">-</span></div>
       </div>
 
-      <!-- Arrow -->
-      <div style="text-align:center;margin:10px 0;font-weight:700;color:var(--mut)">→</div>
+      <div class="center">⇅</div>
 
-      <!-- To -->
       <div class="box">
         <div class="row">
-          <select id="toToken" class="select">
+          <select id="swapToToken" class="sel">
             <option value="0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391">USDC.e</option>
             <option value="0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655">ASTR</option>
             <option value="0x4200000000000000000000000000000000000006">WETH</option>
           </select>
-          <div style="text-align:right;">
-            <div id="toAmount" style="font-weight:700;font-size:20px">~ -</div>
-            <div id="balTo" class="small">Saldo: -</div>
-          </div>
+          <div class="inp" id="swapToAmt">≈ -</div>
         </div>
+        <div class="meta"><span>Saldo</span><span id="swapBalTo">-</span></div>
       </div>
 
-      <div class="info" id="priceInfo">Estimasi: -</div>
+      <div class="meta" style="margin-top:8px">
+        <span class="small">Estimasi</span>
+        <span id="swapPrice" class="small">-</span>
+      </div>
 
-      <button id="btnSwap" class="swap-btn" disabled>Swap</button>
+      <button id="btnSwap" class="cta" disabled>Swap</button>
+      <div class="footer">by thdx</div>
+    </div>
+
+    <!-- ADD LIQ -->
+    <div id="panelAdd" style="display:none">
+      <div class="box">
+        <div class="row">
+          <select id="addTokA" class="sel">
+            <option value="0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655">ASTR</option>
+            <option value="0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391">USDC.e</option>
+            <option value="0x4200000000000000000000000000000000000006">WETH</option>
+          </select>
+          <input id="addAmtA" class="inp" placeholder="0.0" inputmode="decimal"/>
+        </div>
+        <div class="meta"><span>Saldo</span><span id="addBalA">-</span></div>
+      </div>
+
+      <div class="center">+</div>
+
+      <div class="box">
+        <div class="row">
+          <select id="addTokB" class="sel">
+            <option value="0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391">USDC.e</option>
+            <option value="0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655">ASTR</option>
+            <option value="0x4200000000000000000000000000000000000006">WETH</option>
+          </select>
+          <input id="addAmtB" class="inp" placeholder="0.0" inputmode="decimal"/>
+        </div>
+        <div class="meta"><span>Saldo</span><span id="addBalB">-</span></div>
+      </div>
+
+      <div class="meta" style="margin-top:8px">
+        <span class="small">Catatan</span>
+        <span class="small">Min 5% slippage</span>
+      </div>
+
+      <button id="btnAdd" class="cta" disabled>Add Liquidity</button>
+      <div class="footer">by thdx</div>
+    </div>
+
+    <!-- REMOVE LIQ -->
+    <div id="panelRem" style="display:none">
+      <div class="box">
+        <div class="row">
+          <select id="remTokA" class="sel">
+            <option value="0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655">ASTR</option>
+            <option value="0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391">USDC.e</option>
+            <option value="0x4200000000000000000000000000000000000006">WETH</option>
+          </select>
+          <select id="remTokB" class="sel">
+            <option value="0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391">USDC.e</option>
+            <option value="0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655">ASTR</option>
+            <option value="0x4200000000000000000000000000000000000006">WETH</option>
+          </select>
+        </div>
+        <hr class="sep"/>
+        <div class="row">
+          <input id="remPct" class="inp" placeholder="50 (persen)" inputmode="decimal" />
+        </div>
+        <div class="meta"><span>LP Balance</span><span id="remLpBal">-</span></div>
+      </div>
+
+      <button id="btnRem" class="cta" disabled>Remove Liquidity</button>
       <div class="footer">by thdx</div>
     </div>
   </div>
+</div>
 
 <script>
-/* =========================
-   CONFIG
-   ========================= */
-// Router (ganti sesuai router Soneium aktif)
-const ROUTER_ADDRESS = "0x5E0b9C785e9599D6800601574E578E6Caa663d91";
-
-// Known tokens + decimals
+/* ========== CONFIG ========== */
+const ROUTER_ADDR = "0x5E0b9C785e9599D6800601574E578E6Caa663d91"; // Router Soneium (UniswapV2-like)
 const TOKENS = {
-  "0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655": { symbol:"ASTR", decimals:18 },
-  "0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391": { symbol:"USDC.e", decimals:6 },
-  "0x4200000000000000000000000000000000000006": { symbol:"WETH", decimals:18 }
+  "0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655": {symbol:"ASTR",  decimals:18},
+  "0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391": {symbol:"USDC.e",decimals:6},
+  "0x4200000000000000000000000000000000000006": {symbol:"WETH",  decimals:18}
 };
+const CHAIN_ID=1946, CHAIN_HEX="0x79A";
 
-// Chain settings (Soneium Minato)
-const TARGET_CHAIN_ID = 1946; // update kalau beda
-const TARGET_CHAIN_HEX = "0x79A"; // 1946 -> 0x79A
-
-// ABIs
+/* ========== ABIs ========== */
 const ROUTER_ABI = [
+  "function factory() view returns (address)",
   "function getAmountsOut(uint amountIn, address[] calldata path) view returns (uint[] memory amounts)",
-  "function swapExactTokensForTokens(uint amountIn,uint amountOutMin,address[] calldata path,address to,uint deadline)"
+  "function swapExactTokensForTokens(uint amountIn,uint amountOutMin,address[] calldata path,address to,uint deadline)",
+  "function addLiquidity(address tokenA,address tokenB,uint amountADesired,uint amountBDesired,uint amountAMin,uint amountBMin,address to,uint deadline) returns (uint amountA,uint amountB,uint liquidity)",
+  "function removeLiquidity(address tokenA,address tokenB,uint liquidity,uint amountAMin,uint amountBMin,address to,uint deadline) returns (uint amountA,uint amountB)"
 ];
+const FACTORY_ABI = [ "function getPair(address,address) view returns (address)" ];
 const ERC20_ABI = [
-  "function decimals() view returns (uint8)",
-  "function symbol() view returns (string)",
   "function balanceOf(address) view returns (uint256)",
   "function allowance(address,address) view returns (uint256)",
-  "function approve(address,uint256) returns (bool)"
+  "function approve(address,uint256) returns (bool)",
+  "function decimals() view returns (uint8)",
+  "function symbol() view returns (string)"
 ];
 
-/* =========================
-   STATE
-   ========================= */
+/* ========== STATE ========== */
 const $ = id => document.getElementById(id);
-let provider, signer, me;
-let routerContract;
+let provider, signer, me, router, factory;
 
-/* =========================
-   HELPERS
-   ========================= */
-const short = a => a ? a.slice(0,6)+"…"+a.slice(-4) : "—";
-const logErr = (e) => console.error(e);
-
-/* =========================
-   INIT DOM
-   ========================= */
-$("btnConnect").onclick = connectWallet;
-$("fromToken").onchange = onTokenChange;
-$("toToken").onchange   = onTokenChange;
-$("fromAmount").oninput = onAmountInput;
-$("btnSwap").onclick    = doSwap;
-
-/* =========================
-   CONNECT & SETUP
-   ========================= */
-async function connectWallet(){
-  try{
-    if(!window.ethereum) throw new Error("Install MetaMask / injected wallet");
-    provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-    await provider.send("eth_requestAccounts", []);
-    signer = provider.getSigner();
-    me = await signer.getAddress();
-    $("btnConnect").textContent = short(me);
-    // auto-switch to target chain if needed
-    const net = await provider.getNetwork();
-    if(Number(net.chainId) !== TARGET_CHAIN_ID){
-      try {
-        await provider.provider.request({ method:"wallet_switchEthereumChain", params:[{ chainId: TARGET_CHAIN_HEX }]});
-      } catch(switchErr){
-        // try add chain if missing
-        try{
-          await provider.provider.request({
-            method:"wallet_addEthereumChain",
-            params:[{
-              chainId: TARGET_CHAIN_HEX,
-              chainName: "Soneium Minato",
-              rpcUrls: ["https://rpc.minato.soneium.org"],
-              nativeCurrency: { name:"ETH", symbol:"ETH", decimals:18 },
-              blockExplorerUrls: ["https://soneium-minato.blockscout.com"]
-            }]
-          });
-        }catch(addErr){ throw addErr; }
-      }
-    }
-    routerContract = new ethers.Contract(ROUTER_ADDRESS, ROUTER_ABI, signer);
-    await refreshAll();
-    $("btnSwap").disabled = false;
-  }catch(e){
-    alert("Connect error: "+(e.message||e)); logErr(e);
-  }
+/* ========== UI TABS ========== */
+function show(id){
+  ["panelSwap","panelAdd","panelRem"].forEach(p=>$(p).style.display="none");
+  $(id).style.display = "block";
+  ["tabSwap","tabAdd","tabRem"].forEach(t=>$(t).classList.remove("active"));
+  if(id==="panelSwap") $("tabSwap").classList.add("active");
+  if(id==="panelAdd")  $("tabAdd").classList.add("active");
+  if(id==="panelRem")  $("tabRem").classList.add("active");
 }
+$("tabSwap").onclick = ()=>show("panelSwap");
+$("tabAdd").onclick  = ()=>show("panelAdd");
+$("tabRem").onclick  = ()=>show("panelRem");
 
-/* =========================
-   BALANCES & QUOTE
-   ========================= */
-async function refreshAll(){
-  try{
-    await refreshBalances();
-    await quoteOut();
-  }catch(e){ logErr(e); }
-}
-
-async function refreshBalances(){
-  try{
-    if(!signer) return;
-    const from = $("fromToken").value;
-    const to   = $("toToken").value;
-    const ercFrom = new ethers.Contract(from, ERC20_ABI, provider);
-    const ercTo   = new ethers.Contract(to, ERC20_ABI, provider);
-    const bFrom = await ercFrom.balanceOf(me);
-    const bTo   = await ercTo.balanceOf(me);
-    $("balFrom").textContent = `Saldo: ${formatUnits(bFrom, TOKENS[from].decimals)} ${TOKENS[from].symbol}`;
-    $("balTo").textContent   = `Saldo: ${formatUnits(bTo, TOKENS[to].decimals)} ${TOKENS[to].symbol}`;
-  }catch(e){ $("balFrom").textContent="Saldo: -"; $("balTo").textContent="Saldo: -"; }
-}
-
-function formatUnits(bn, dec){
-  try{ return Number(ethers.utils.formatUnits(bn, dec)).toLocaleString(undefined,{maximumFractionDigits:6}); }
+/* ========== HELPERS ========== */
+const fmt = (bn,dec)=> {
+  try{ return Number(ethers.utils.formatUnits(bn,dec)).toLocaleString(undefined,{maximumFractionDigits:6}); }
   catch{ return "-"; }
-}
+};
+const parse = (v,dec)=> ethers.utils.parseUnits(String(v||"0"), dec);
+const short = a => a ? a.slice(0,6)+"…"+a.slice(-4) : "";
 
-async function quoteOut(){
-  try{
-    if(!routerContract) return $("toAmount").textContent = "~ -", $("priceInfo").textContent="Estimasi: -";
-    const val = $("fromAmount").value.trim();
-    if(!val || Number(val) <= 0) { $("toAmount").textContent = "~ -"; $("priceInfo").textContent="Estimasi: -"; return; }
-    const from = $("fromToken").value;
-    const to   = $("toToken").value;
-    const decFrom = TOKENS[from].decimals;
-    const decTo   = TOKENS[to].decimals;
-    const amountIn = ethers.utils.parseUnits(val, decFrom);
-    const path = [from, to];
-    // call getAmountsOut
-    const amounts = await routerContract.getAmountsOut(amountIn, path);
-    const out = amounts[amounts.length-1];
-    $("toAmount").textContent = `≈ ${formatUnits(out, decTo)} ${TOKENS[to].symbol}`;
-    const per = Number(ethers.utils.formatUnits(out, decTo)) / Math.max(Number(ethers.utils.formatUnits(amountIn, decFrom)), 1e-18);
-    $("priceInfo").textContent = `Estimasi: 1 ${TOKENS[from].symbol} ≈ ${per.toFixed(6)} ${TOKENS[to].symbol}`;
-  }catch(e){
-    $("toAmount").textContent = "~ -";
-    $("priceInfo").textContent = "Estimasi: gagal (liquidity/path error)";
-    //console.error(e);
+/* ========== CONNECT ========== */
+$("btnConnect").onclick = connect;
+async function connect(){
+  if(!window.ethereum){ alert("Install MetaMask/OKX/Trust terlebih dahulu"); return; }
+  provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+  await provider.send("eth_requestAccounts", []);
+  signer = provider.getSigner(); me = await signer.getAddress();
+  $("btnConnect").textContent = short(me);
+
+  const net = await provider.getNetwork();
+  if(Number(net.chainId)!==CHAIN_ID){
+    try{
+      await provider.provider.request({ method:"wallet_switchEthereumChain", params:[{chainId:CHAIN_HEX}] });
+    }catch(e){
+      if(e.code===4902){
+        await provider.provider.request({
+          method:"wallet_addEthereumChain",
+          params:[{ chainId:CHAIN_HEX, chainName:"Soneium Minato", rpcUrls:["https://rpc.minato.soneium.org"],
+            blockExplorerUrls:["https://soneium-minato.blockscout.com"], nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18} }]
+        });
+      } else { alert("Gagal switch chain: "+(e.message||e)); return; }
+    }
   }
+  router = new ethers.Contract(ROUTER_ADDR, ROUTER_ABI, signer);
+  const faddr = await router.factory();
+  factory = new ethers.Contract(faddr, FACTORY_ABI, provider);
+
+  // enable buttons
+  ["btnSwap","btnAdd","btnRem"].forEach(id=>$(id).disabled=false);
+
+  // balances & quote awal
+  await refreshSwapBalances();
+  await quoteSwap();
+  await refreshAddBalances();
+  await refreshRemLpBal();
 }
 
-/* =========================
-   AUTO UPDATE on changes
-   ========================= */
-function onTokenChange(){
-  // prevent same token selection
-  if($("fromToken").value === $("toToken").value){
-    // swap second option automatically
-    const opts = Object.keys(TOKENS).filter(a => a !== $("fromToken").value);
-    $("toToken").value = opts[0];
+/* ========== SWAP ========== */
+async function refreshSwapBalances(){
+  if(!me) return;
+  const tF = $("swapFromToken").value, tT = $("swapToToken").value;
+  const cF = new ethers.Contract(tF, ERC20_ABI, provider);
+  const cT = new ethers.Contract(tT, ERC20_ABI, provider);
+  const bF = await cF.balanceOf(me);
+  const bT = await cT.balanceOf(me);
+  $("swapBalFrom").textContent = fmt(bF, TOKENS[tF].decimals) + " " + TOKENS[tF].symbol;
+  $("swapBalTo").textContent   = fmt(bT, TOKENS[tT].decimals) + " " + TOKENS[tT].symbol;
+}
+async function quoteSwap(){
+  try{
+    if(!router){ $("swapToAmt").textContent="≈ -"; $("swapPrice").textContent="-"; return; }
+    const val = $("swapFromAmt").value.trim();
+    const tF = $("swapFromToken").value, tT = $("swapToToken").value;
+    if(!val || Number(val)<=0 || tF===tT){ $("swapToAmt").textContent="≈ -"; $("swapPrice").textContent="-"; return; }
+    const inBN = parse(val, TOKENS[tF].decimals);
+    const path = [tF, tT];
+    const amts = await router.getAmountsOut(inBN, path);
+    const outBN = amts[amts.length-1];
+    $("swapToAmt").textContent = "≈ " + fmt(outBN, TOKENS[tT].decimals) + " " + TOKENS[tT].symbol;
+    const per = Number(ethers.utils.formatUnits(outBN, TOKENS[tT].decimals)) / Number(val);
+    $("swapPrice").textContent = `1 ${TOKENS[tF].symbol} ≈ ${isFinite(per)?per.toFixed(6):"-"} ${TOKENS[tT].symbol}`;
+  }catch{ $("swapToAmt").textContent="≈ -"; $("swapPrice").textContent="Estimasi gagal"; }
+}
+async function ensureApprove(token, spender, amt){
+  const c = new ethers.Contract(token, ERC20_ABI, signer);
+  const al = await c.allowance(me, spender);
+  if(al.gte(amt)) return;
+  const tx = await c.approve(spender, amt);
+  await tx.wait();
+}
+$("swapFromToken").onchange = async ()=>{
+  if($("swapFromToken").value === $("swapToToken").value){
+    const others = Object.keys(TOKENS).filter(a=>a!==$("swapFromToken").value);
+    $("swapToToken").value = others[0];
   }
-  quoteOut();
-  if(signer) refreshBalances();
-}
-function onAmountInput(){
-  quoteOut();
-}
+  await refreshSwapBalances(); await quoteSwap();
+};
+$("swapToToken").onchange = async ()=>{
+  if($("swapFromToken").value === $("swapToToken").value){
+    const others = Object.keys(TOKENS).filter(a=>a!==$("swapToToken").value);
+    $("swapFromToken").value = others[0];
+  }
+  await refreshSwapBalances(); await quoteSwap();
+};
+$("swapFromAmt").oninput = quoteSwap;
 
-/* =========================
-   APPROVE + SWAP
-   ========================= */
-async function ensureApprove(tokenAddr, spender, amountBN){
+$("btnSwap").onclick = async ()=>{
   try{
-    const erc = new ethers.Contract(tokenAddr, ERC20_ABI, signer);
-    const allowance = await erc.allowance(me, spender);
-    if(allowance.gte(amountBN)) return true;
-    const tx = await erc.approve(spender, amountBN);
-    await tx.wait();
-    return true;
-  }catch(e){ throw e; }
-}
-
-async function doSwap(){
-  try{
-    if(!signer) return alert("Connect wallet dulu.");
-    const from = $("fromToken").value;
-    const to   = $("toToken").value;
-    const decFrom = TOKENS[from].decimals;
-    const decTo   = TOKENS[to].decimals;
-    const val = $("fromAmount").value.trim();
-    if(!val || Number(val)<=0) return alert("Masukkan jumlah valid.");
-    const amountIn = ethers.utils.parseUnits(val, decFrom);
-
-    // get quote amounts
-    const path = [from, to];
-    let amounts;
-    try{ amounts = await routerContract.getAmountsOut(amountIn, path); } catch(e){ throw new Error("Cannot quote output: " + (e.message||e)); }
-    const amountOutMin = amounts[amounts.length-1].mul(95).div(100); // 5% slippage tolerance default
-
-    // approve if needed
-    $("btnSwap").disabled = true; $("btnSwap").textContent = "Processing...";
-    await ensureApprove(from, ROUTER_ADDRESS, amountIn);
-
-    // send swap
-    const deadline = Math.floor(Date.now()/1000) + 1200;
-    const tx = await routerContract.swapExactTokensForTokens(amountIn, amountOutMin, path, me, deadline, { gasLimit: 800000 });
-    alert("Tx sent: " + tx.hash);
+    const tF = $("swapFromToken").value, tT = $("swapToToken").value;
+    const v  = $("swapFromAmt").value.trim();
+    if(!v || Number(v)<=0) return alert("Masukkan jumlah valid");
+    const inBN = parse(v, TOKENS[tF].decimals);
+    const path = [tF, tT];
+    const amts = await router.getAmountsOut(inBN, path);
+    const outMin = amts[amts.length-1].mul(95).div(100); // 5% slippage
+    $("btnSwap").disabled = true; $("btnSwap").textContent = "Processing…";
+    await ensureApprove(tF, ROUTER_ADDR, inBN);
+    const deadline = Math.floor(Date.now()/1000)+1200;
+    const tx = await router.swapExactTokensForTokens(inBN, outMin, path, me, deadline, { gasLimit: 800000 });
+    alert("Tx sent: "+tx.hash);
     await tx.wait();
     alert("Swap confirmed!");
-    await refreshBalances();
-    quoteOut();
-  }catch(e){
-    alert("Swap error: " + (e.reason || e.message || e));
-    console.error(e);
-  }finally{
-    $("btnSwap").disabled = false; $("btnSwap").textContent = "Swap";
-  }
-}
+    await refreshSwapBalances(); await quoteSwap();
+  }catch(e){ alert("Swap error: "+(e.reason||e.message||e)); }
+  finally{ $("btnSwap").disabled = false; $("btnSwap").textContent = "Swap"; }
+};
 
-/* =========================
-   Init: set UI defaults
-   ========================= */
-(function init(){
-  // show short addr placeholder
-  $("shortAddr").textContent = "not connected";
-  // set default token ordering (ASTR -> USDC.e)
-  $("fromToken").value = "0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655";
-  $("toToken").value   = "0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391";
-  // attach input placeholder listener
-  $("fromAmount").placeholder = "0.0";
-  // try to create provider if injected exists (but not request accounts yet)
-  if(window.ethereum){
-    provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-    // attempt get address (if unlocked)
-    provider.listAccounts().then(accs=>{
-      if(accs && accs.length){ me = accs[0]; $("btnConnect").textContent = short(me); }
-    }).catch(()=>{});
-    // prepare router read-only if provider present (require chain correct)
-    // We'll instantiate routerContract after connect to signer for write and quote.
-    try{ routerContract = new ethers.Contract(ROUTER_ADDRESS, ROUTER_ABI, provider); }catch{}
+/* ========== ADD LIQ ========== */
+async function refreshAddBalances(){
+  if(!me) return;
+  const a = $("addTokA").value, b = $("addTokB").value;
+  const cA = new ethers.Contract(a, ERC20_ABI, provider);
+  const cB = new ethers.Contract(b, ERC20_ABI, provider);
+  const bA = await cA.balanceOf(me);
+  const bB = await cB.balanceOf(me);
+  $("addBalA").textContent = fmt(bA, TOKENS[a].decimals)+" "+TOKENS[a].symbol;
+  $("addBalB").textContent = fmt(bB, TOKENS[b].decimals)+" "+TOKENS[b].symbol;
+}
+$("addTokA").onchange = ()=>{
+  if($("addTokA").value === $("addTokB").value){
+    const others = Object.keys(TOKENS).filter(x=>x!==$("addTokA").value);
+    $("addTokB").value = others[0];
   }
+  refreshAddBalances();
+};
+$("addTokB").onchange = ()=>{
+  if($("addTokA").value === $("addTokB").value){
+    const others = Object.keys(TOKENS).filter(x=>x!==$("addTokB").value);
+    $("addTokA").value = others[0];
+  }
+  refreshAddBalances();
+};
+$("addAmtA").oninput = ()=>{}; $("addAmtB").oninput = ()=>{};
+
+$("btnAdd").onclick = async ()=>{
+  try{
+    const A = $("addTokA").value, B = $("addTokB").value;
+    const aH = $("addAmtA").value.trim(), bH = $("addAmtB").value.trim();
+    if(!aH || !bH) return alert("Isi kedua jumlah token");
+    const aBN = parse(aH, TOKENS[A].decimals);
+    const bBN = parse(bH, TOKENS[B].decimals);
+    $("btnAdd").disabled = true; $("btnAdd").textContent = "Processing…";
+    await ensureApprove(A, ROUTER_ADDR, aBN);
+    await ensureApprove(B, ROUTER_ADDR, bBN);
+    const aMin = aBN.mul(95).div(100), bMin = bBN.mul(95).div(100);
+    const deadline = Math.floor(Date.now()/1000)+1200;
+    const tx = await router.addLiquidity(A,B,aBN,bBN,aMin,bMin,me,deadline);
+    alert("Tx sent: "+tx.hash);
+    await tx.wait();
+    alert("Add Liquidity confirmed!");
+    await refreshAddBalances(); await refreshSwapBalances();
+  }catch(e){ alert("Add error: "+(e.reason||e.message||e)); }
+  finally{ $("btnAdd").disabled=false; $("btnAdd").textContent="Add Liquidity"; }
+};
+
+/* ========== REMOVE LIQ ========== */
+async function getPair(A,B){
+  return await factory.getPair(A,B);
+}
+async function refreshRemLpBal(){
+  try{
+    if(!me || !factory) return $("remLpBal").textContent="-";
+    const A = $("remTokA").value, B = $("remTokB").value;
+    const pair = await getPair(A,B);
+    if(pair === ethers.constants.AddressZero){ $("remLpBal").textContent="pair not found"; return; }
+    const lp = new ethers.Contract(pair, ERC20_ABI, provider);
+    const bal = await lp.balanceOf(me);
+    $("remLpBal").textContent = fmt(bal, 18) + " LP";
+  }catch{ $("remLpBal").textContent="-"; }
+}
+$("remTokA").onchange = async ()=>{
+  if($("remTokA").value === $("remTokB").value){
+    const others = Object.keys(TOKENS).filter(x=>x!==$("remTokA").value);
+    $("remTokB").value = others[0];
+  }
+  await refreshRemLpBal();
+};
+$("remTokB").onchange = async ()=>{
+  if($("remTokA").value === $("remTokB").value){
+    const others = Object.keys(TOKENS).filter(x=>x!==$("remTokB").value);
+    $("remTokA").value = others[0];
+  }
+  await refreshRemLpBal();
+};
+
+$("btnRem").onclick = async ()=>{
+  try{
+    const A=$("remTokA").value, B=$("remTokB").value;
+    const pctStr = $("remPct").value.trim();
+    const pct = Number(pctStr||"0");
+    if(!(pct>0 && pct<=100)) return alert("Isi persen 1-100");
+    const pair = await getPair(A,B);
+    if(pair===ethers.constants.AddressZero) return alert("Pair tidak ditemukan");
+    const lp = new ethers.Contract(pair, ERC20_ABI, signer);
+    const bal = await lp.balanceOf(me);
+    const liq = bal.mul(Math.floor(pct*100)).div(100*100); // safe percent
+
+    $("btnRem").disabled = true; $("btnRem").textContent = "Processing…";
+    // approve LP to router
+    const al = await lp.allowance(me, ROUTER_ADDR);
+    if(al.lt(liq)){ const txA = await lp.approve(ROUTER_ADDR, liq); await txA.wait(); }
+
+    const aMin = 0, bMin = 0; // simplify
+    const deadline = Math.floor(Date.now()/1000)+1200;
+    const tx = await router.removeLiquidity(A,B,liq,aMin,bMin,me,deadline);
+    alert("Tx sent: "+tx.hash);
+    await tx.wait();
+    alert("Remove Liquidity confirmed!");
+    await refreshRemLpBal(); await refreshSwapBalances(); await refreshAddBalances();
+  }catch(e){ alert("Remove error: "+(e.reason||e.message||e)); }
+  finally{ $("btnRem").disabled=false; $("btnRem").textContent="Remove Liquidity"; }
+};
+
+/* ========== DEFAULTS ========== */
+(function init(){
+  // default Swap: ASTR -> USDC.e
+  $("swapFromToken").value = "0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655";
+  $("swapToToken").value   = "0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391";
+  // default Add/Remove pairs
+  $("addTokA").value = "0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655";
+  $("addTokB").value = "0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391";
+  $("remTokA").value = "0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655";
+  $("remTokB").value = "0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391";
 })();
 </script>
 </body>
