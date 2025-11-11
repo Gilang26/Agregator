@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Soneium DEX — Swap (v3.7.3 Factory Fix)</title>
+<title>Soneium DEX — Swap (v3.7.4)</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <style>
 :root{--g1:#22c55e;--g2:#16a34a;--bg1:#f6fff7;--bg2:#e9fbee;--card:#fff;--line:#e6f7ec;--text:#0e2b22;--mut:#6b7f77}
-*{box-sizing:border-box}body{margin:0;font-family:Poppins,system-ui,Arial;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:var(--text);display:flex;align-items:center;justify-content:center;min-height:100vh}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;font-family:Poppins,system-ui,Arial;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:var(--text);display:flex;align-items:center;justify-content:center}
 .wrap{width:min(430px,94vw)}
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .brand{display:flex;gap:10px;align-items:center}
@@ -25,6 +26,7 @@
 .cta{width:100%;margin-top:12px;padding:14px;border:0;border-radius:12px;color:#fff;font-weight:800;background:linear-gradient(90deg,var(--g1),var(--g2));cursor:pointer}
 .cta:disabled{opacity:.6;cursor:not-allowed}
 .footer{text-align:center;font-size:12px;color:var(--mut);margin-top:10px}
+.note{font-size:12px;color:var(--mut);text-align:center;margin-top:6px}
 </style>
 </head>
 <body>
@@ -33,6 +35,7 @@
     <div class="brand"><div class="badge"></div><div class="title">Soneium DEX</div></div>
     <button id="btnConnect" class="btn">Connect</button>
   </div>
+
   <div class="card">
     <div class="box">
       <div class="row">
@@ -41,11 +44,15 @@
           <option value="0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391">USDC.e</option>
           <option value="0x4200000000000000000000000000000000000006">WETH</option>
         </select>
-        <div class="input-wrap"><input id="fromAmount" class="inp" placeholder="0.0" inputmode="decimal"/></div>
+        <div class="input-wrap">
+          <input id="fromAmount" class="inp" placeholder="0.0" inputmode="decimal"/>
+        </div>
       </div>
       <div class="meta"><span>Saldo</span><span id="balFrom">-</span></div>
     </div>
+
     <div class="center">⇅</div>
+
     <div class="box">
       <div class="row">
         <select id="toToken" class="sel">
@@ -57,16 +64,19 @@
       </div>
       <div class="meta"><span>Saldo</span><span id="balTo">-</span></div>
     </div>
+
     <div class="meta" style="margin-top:8px"><span>Estimasi</span><span id="priceInfo">-</span></div>
-    <div class="meta"><span>Router:</span><span id="routerName">auto</span></div>
+    <div class="meta"><span>Router</span><span id="routerName">auto</span></div>
+
     <button id="btnSwap" class="cta" disabled>Swap</button>
     <div class="footer">by thdx</div>
   </div>
 </div>
 
 <script>
+/* ---------- CONFIG ---------- */
 const RPC="https://rpc.minato.soneium.org";
-const CHAIN_ID=1946,CHAIN_HEX="0x79A";
+const CHAIN_ID=1946, CHAIN_HEX="0x79A";
 const FACTORY="0x48630D9914A9F87A485ABE0779cAa9E58ff0F604";
 const ROUTERS=[
   {name:"Router A",addr:"0x5E0b9C785e9599D6800601574E578E6Caa663d91"},
@@ -74,90 +84,207 @@ const ROUTERS=[
   {name:"Router C",addr:"0xC7376dE2897b3F0b67c45Ae240444a2D435cA3E0"}
 ];
 const TOKENS={
- "0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655":{symbol:"ASTR",decimals:18},
- "0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391":{symbol:"USDC.e",decimals:6},
+ "0x26e6f7c7047252dde3dcbf26aa492e6a264db655":{symbol:"ASTR",decimals:18},
+ "0xe9a198d38483ad727abc8b0b1e16b2d338cf0391":{symbol:"USDC.e",decimals:6},
  "0x4200000000000000000000000000000000000006":{symbol:"WETH",decimals:18}
 };
 const WETH="0x4200000000000000000000000000000000000006";
 
-const ERC20_ABI=["function balanceOf(address) view returns(uint256)","function allowance(address,address) view returns(uint256)","function approve(address,uint256)"];
+/* ---------- ABIs ---------- */
+const ERC20_ABI=[
+ "function balanceOf(address) view returns(uint256)",
+ "function allowance(address,address) view returns(uint256)",
+ "function approve(address,uint256) returns(bool)"
+];
 const ROUTER_ABI=[
  "function getAmountsOut(uint amountIn,address[] calldata path) view returns(uint[] memory amounts)",
  "function swapExactTokensForTokens(uint amountIn,uint amountOutMin,address[] calldata path,address to,uint deadline)"
 ];
 const FACTORY_ABI=["function getPair(address,address) view returns(address)"];
+
+/* ---------- STATE ---------- */
 const $=id=>document.getElementById(id);
 let provider,signer,me,best=null;
+let readProvider = new ethers.providers.JsonRpcProvider(RPC);
 
+/* ---------- HELPERS ---------- */
+const toKey=a=>a.toLowerCase();
+const tInfo=a=>TOKENS[toKey(a)];
+const fmt=(bn,dec)=>{try{return Number(ethers.utils.formatUnits(bn,dec)).toLocaleString(undefined,{maximumFractionDigits:6})}catch{return "-"}};
+const parse=(v,dec)=>ethers.utils.parseUnits(String(v).replace(",","."),dec);
+
+/* ---------- EVENTS ---------- */
 $("btnConnect").onclick=connect;
-$("fromToken").onchange=quote;
-$("toToken").onchange=quote;
-$("fromAmount").oninput=()=>setTimeout(quote,300);
+$("fromToken").onchange=onTokenChange;
+$("toToken").onchange=onTokenChange;
+$("fromAmount").oninput=debounce(quote,250);
 $("btnSwap").onclick=swap;
 
+function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
+
+/* ---------- CONNECT ---------- */
 async function connect(){
- try{
-  provider=new ethers.providers.Web3Provider(window.ethereum,"any");
-  await provider.send("eth_requestAccounts",[]);
-  signer=provider.getSigner(); me=await signer.getAddress();
-  $("btnConnect").textContent=me.slice(0,6)+"…"+me.slice(-4);
-  const net=await provider.getNetwork();
-  if(net.chainId!==CHAIN_ID){
-    try{await provider.provider.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_HEX}]})}
-    catch{await provider.provider.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN_HEX,chainName:"Soneium Minato",rpcUrls:[RPC]}]})}
-  }
-  $("btnSwap").disabled=false;
-  quote();
- }catch(e){alert(e.message)}
-}
+  try{
+    if(!window.ethereum) throw new Error("Install MetaMask dulu");
+    provider=new ethers.providers.Web3Provider(window.ethereum,"any");
+    await provider.send("eth_requestAccounts",[]);
+    signer=provider.getSigner(); me=await signer.getAddress();
+    $("btnConnect").textContent = me.slice(0,6)+"…"+me.slice(-4);
 
-async function getPair(a,b){
- const f=new ethers.Contract(FACTORY,FACTORY_ABI,provider||new ethers.providers.JsonRpcProvider(RPC));
- try{return await f.getPair(a,b)}catch{return ethers.constants.AddressZero}
-}
-
-async function quote(){
- try{
-  const a=$("fromToken").value,b=$("toToken").value,v=$("fromAmount").value;
-  if(!v||Number(v)<=0){$("toAmount").textContent="≈-";$("priceInfo").textContent="-";return}
-  const amt=ethers.utils.parseUnits(v,TOKENS[a].decimals);
-  const paths=[[a,b]]; if(a!==WETH&&b!==WETH)paths.push([a,WETH,b]);
-  let bestLocal=null;
-  for(const r of ROUTERS){
-    const c=new ethers.Contract(r.addr,ROUTER_ABI,provider||new ethers.providers.JsonRpcProvider(RPC));
-    for(const p of paths){
-      const ok1=await getPair(p[0],p[1]);
-      if(p.length===3){const ok2=await getPair(p[1],p[2]);if(ok1===ethers.constants.AddressZero||ok2===ethers.constants.AddressZero)continue}
-      if(ok1===ethers.constants.AddressZero)continue;
+    const net=await provider.getNetwork();
+    if(Number(net.chainId)!==CHAIN_ID){
       try{
-        const out=(await c.getAmountsOut(amt,p)).slice(-1)[0];
-        if(!bestLocal||out.gt(bestLocal.out))bestLocal={r,p,out}
-      }catch{}
+        await provider.provider.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_HEX}]});
+      }catch(e){
+        if(e.code===4902){
+          await provider.provider.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN_HEX,chainName:"Soneium Minato",rpcUrls:[RPC]}]});
+        } else throw e;
+      }
     }
-  }
-  if(!bestLocal){$("toAmount").textContent="≈-";$("priceInfo").textContent="Estimasi gagal (no liquidity)";return}
-  best=bestLocal; $("routerName").textContent=best.r.name;
-  const dec=TOKENS[$("toToken").value].decimals;
-  $("toAmount").textContent="≈ "+Number(ethers.utils.formatUnits(best.out,dec)).toFixed(6);
-  $("priceInfo").textContent=`1 ${TOKENS[a].symbol} ≈ ${(Number(ethers.utils.formatUnits(best.out,dec))/Number(v)).toFixed(6)} ${TOKENS[b].symbol}`;
- }catch{ $("toAmount").textContent="≈-"; $("priceInfo").textContent="Estimasi gagal"; }
+
+    // pakai provider baca tulis + readProvider untuk read-only cepat
+    readProvider = provider;
+
+    await refreshBalances();
+    $("btnSwap").disabled=false;
+    await quote();
+  }catch(e){ alert("Connect error: "+(e.message||e)); }
 }
 
-async function swap(){
- try{
-  if(!best)return alert("Belum ada route valid");
-  const a=$("fromToken").value,b=$("toToken").value,v=$("fromAmount").value;
-  const amt=ethers.utils.parseUnits(v,TOKENS[a].decimals);
-  const r=new ethers.Contract(best.r.addr,ROUTER_ABI,signer);
-  const outMin=best.out.mul(95).div(100);
-  const token=new ethers.Contract(a,ERC20_ABI,signer);
-  const al=await token.allowance(me,best.r.addr);
-  if(al.lt(amt)){await(await token.approve(best.r.addr,amt)).wait()}
-  const tx=await r.swapExactTokensForTokens(amt,outMin,best.p,me,Math.floor(Date.now()/1e3)+600,{gasLimit:900000});
-  alert("Tx sent: "+tx.hash);
-  await tx.wait();alert("Swap success!");
- }catch(e){alert("Swap error: "+(e.reason||e.message))}
+/* ---------- BALANCES ---------- */
+async function refreshBalances(){
+  try{
+    if(!me) return;
+    const a=$("fromToken").value, b=$("toToken").value;
+    const cA=new ethers.Contract(a,ERC20_ABI,readProvider);
+    const cB=new ethers.Contract(b,ERC20_ABI,readProvider);
+    const [ba,bb]=await Promise.all([cA.balanceOf(me),cB.balanceOf(me)]);
+    $("balFrom").textContent=fmt(ba,tInfo(a).decimals)+" "+tInfo(a).symbol;
+    $("balTo").textContent  =fmt(bb,tInfo(b).decimals)+" "+tInfo(b).symbol;
+  }catch{ $("balFrom").textContent="-"; $("balTo").textContent="-"; }
 }
+
+/* ---------- FACTORY PAIR CHECK (dua arah) ---------- */
+async function getPairEither(x,y){
+  const f=new ethers.Contract(FACTORY,FACTORY_ABI,readProvider);
+  try{
+    let p = await f.getPair(x,y);
+    if(p && p!==ethers.constants.AddressZero) return p;
+    p = await f.getPair(y,x);
+    if(p && p!==ethers.constants.AddressZero) return p;
+    return ethers.constants.AddressZero;
+  }catch{ return ethers.constants.AddressZero; }
+}
+
+/* ---------- QUOTE (auto path) ---------- */
+async function quote(){
+  try{
+    const val=$("fromAmount").value.trim();
+    const A=$("fromToken").value, B=$("toToken").value;
+    if(!val||Number(val)<=0||A===B){
+      $("toAmount").textContent="≈ -"; $("priceInfo").textContent="-"; $("routerName").textContent="auto"; best=null; return;
+    }
+    const amountIn=parse(val,tInfo(A).decimals);
+
+    // kandidat path: direct dan via WETH
+    const candidates=[[A,B]];
+    if(A.toLowerCase()!==WETH.toLowerCase() && B.toLowerCase()!==WETH.toLowerCase()){
+      candidates.push([A,WETH,B]);
+    }
+
+    let bestLocal=null;
+
+    for(const r of ROUTERS){
+      const rc=new ethers.Contract(r.addr,ROUTER_ABI,readProvider);
+      for(const path of candidates){
+        // validasi pair untuk setiap hop (dua arah)
+        let ok=true;
+        for(let i=0;i<path.length-1;i++){
+          const pair=await getPairEither(path[i],path[i+1]);
+          if(pair===ethers.constants.AddressZero){ ok=false; break; }
+        }
+        if(!ok) continue;
+
+        try{
+          const amts=await rc.getAmountsOut(amountIn,path);
+          const out=amts[amts.length-1];
+          if(!bestLocal||out.gt(bestLocal.out)) bestLocal={r,path,out};
+        }catch{/* router ini tidak kenal path meski factory ada */}
+      }
+    }
+
+    if(!bestLocal){
+      $("toAmount").textContent="≈ -";
+      $("priceInfo").textContent="Estimasi gagal (no liquidity)";
+      $("routerName").textContent="auto";
+      best=null; return;
+    }
+
+    best=bestLocal;
+    $("routerName").textContent=best.r.name;
+    const dec=tInfo(B).decimals;
+    $("toAmount").textContent="≈ "+Number(ethers.utils.formatUnits(best.out,dec)).toFixed(6)+" "+tInfo(B).symbol;
+    const per = Number(ethers.utils.formatUnits(best.out,dec))/Number(val);
+    $("priceInfo").textContent=`1 ${tInfo(A).symbol} ≈ ${isFinite(per)?per.toFixed(6):"-"} ${tInfo(B).symbol}`;
+  }catch(e){
+    $("toAmount").textContent="≈ -"; $("priceInfo").textContent="Estimasi gagal"; $("routerName").textContent="auto"; best=null;
+  }
+}
+
+/* ---------- TOKEN CHANGE ---------- */
+async function onTokenChange(){
+  if($("fromToken").value === $("toToken").value){
+    const keys=Object.keys(TOKENS).filter(k=>k!==toKey($("fromToken").value));
+    $("toToken").value = keys[0];
+  }
+  await refreshBalances();
+  await quote();
+}
+
+/* ---------- APPROVE ---------- */
+async function ensureApprove(token,spender,amt){
+  const c=new ethers.Contract(token,["function allowance(address,address) view returns(uint256)","function approve(address,uint256) returns(bool)"],signer);
+  const al=await c.allowance(me,spender);
+  if(al.gte(amt)) return;
+  const tx=await c.approve(spender,amt);
+  await tx.wait();
+}
+
+/* ---------- SWAP ---------- */
+async function swap(){
+  try{
+    if(!best) return alert("Tidak ada route yang valid (cek liquidity)");
+    const A=$("fromToken").value, B=$("toToken").value, v=$("fromAmount").value.trim();
+    const amt=parse(v,tInfo(A).decimals);
+    const rc=new ethers.Contract(best.r.addr,ROUTER_ABI,signer);
+
+    // re-quote untuk outMin
+    const amts=await rc.getAmountsOut(amt,best.path);
+    const out=amts[amts.length-1];
+    const outMin=out.mul(95).div(100); // 5% slippage
+
+    $("btnSwap").disabled=true; $("btnSwap").textContent="Processing…";
+    await ensureApprove(A,best.r.addr,amt);
+
+    const deadline=Math.floor(Date.now()/1000)+900;
+    const tx=await rc.swapExactTokensForTokens(amt,outMin,best.path,me,deadline,{gasLimit:900000});
+    alert("Tx sent: "+tx.hash);
+    await tx.wait();
+    alert("Swap confirmed!");
+    await refreshBalances(); await quote();
+  }catch(e){
+    alert("Swap error: "+(e.reason||e.data?.message||e.message));
+  }finally{
+    $("btnSwap").disabled=false; $("btnSwap").textContent="Swap";
+  }
+}
+
+/* ---------- DEFAULTS ---------- */
+(function init(){
+  // default: ASTR → USDC.e
+  $("fromToken").value="0x26e6f7c7047252DdE3dcBF26AA492e6a264Db655";
+  $("toToken").value  ="0xE9A198d38483aD727ABC8b0B1e16B2d338CF0391";
+})();
 </script>
 </body>
 </html>
